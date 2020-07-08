@@ -147,8 +147,22 @@ class Playlist(EventEmitter, Serializable):
         if info.get('extractor'):
             dest_url = info.get('url')
 
-        if info.get('extractor', None) == 'twitch:stream':  # may need to add other twitch types
-            title = info.get('description')
+        if info.get('extractor', None) == 'twitch:stream': 
+            if "http://twitch.tv/" in song_url: title = song_url.replace("http://twitch.tv/","")
+            elif "http://www.twitch.tv/" in song_url: title = song_url.replace("http://www.twitch.tv/","")
+            elif "https://www.twitch.tv/" in song_url: title = song_url.replace("https://www.twitch.tv/","")
+            else:
+                raise ExtractionError("It is not a twitch url")
+            if a == True:
+                import json
+                import aiohttp
+                async with aiohttp.ClientSession() as session:
+                    async with session.get("https://www.twitchdarkbot.com/api/v2/twitch/m3u8?url=https://twitch.tv/"+title+"&quality=audio_only") as resp:
+                        r = await resp.json()
+                if r["status"] == 400:
+                    raise ExtractionError(r["line"])
+                else:
+                    dest_url = r["m3u8"]
         else:
             title = info.get('title', 'Untitled')
 
